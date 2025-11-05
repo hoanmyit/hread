@@ -12,19 +12,125 @@ using ZXing;
 using AForge.Video;
 using AForge.Video.DirectShow;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace HRead
 {
     public partial class frmMain : Form
     {
+        [DllImport("user32.dll")]
+        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [DllImport("user32.dll")]
+        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        private const int HOTKEY_ID_CTRL_H = 1;
+        private const int HOTKEY_ID_CTRL_K = 2;
+        private const int HOTKEY_ID_CTRL_O = 3;
+        // Modifier keys
+        private const uint MOD_CONTROL = 0x0002;
+        private const uint MOD_ALT = 0x0001;
+        private const uint MOD_SHIFT = 0x0004;
+        private const uint MOD_WIN = 0x0008;
+
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+        private const byte VK_CONTROL = 0x11;
+        private const byte VK_C = 0x43;
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_HOTKEY = 0x0312;
+
+            if (m.Msg == WM_HOTKEY)
+            {
+                int id = m.WParam.ToInt32();
+                if (id == HOTKEY_ID_CTRL_O)
+                {
+                    keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
+                    keybd_event(VK_C, 0, 0, UIntPtr.Zero);
+                    keybd_event(VK_C, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                    keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+                    Task.Delay(200); // chờ 200ms cho clipboard cập nhật
+
+                    if (Clipboard.ContainsImage())
+                    {
+                        // Lấy hình ảnh từ Clipboard
+                        Image image = Clipboard.GetImage();
+
+                        // Gán hình ảnh vào PictureBox
+                        picImage.Image = image;
+
+                        // Thay đổi kích thước PictureBox để hiển thị hình ảnh đầy đủ
+                        picImage.SizeMode = PictureBoxSizeMode.AutoSize;
+
+                        string otext = OCR((Bitmap)Clipboard.GetImage());
+                        txtRes.Text = otext;
+                        Clipboard.SetText(otext);
+                        txtRes.Refresh();
+                        picImage.Refresh();
+                    }
+                }
+                if (id == HOTKEY_ID_CTRL_H)
+                {
+                    SendKeys.SendWait("^+{LEFT}");
+                    SendKeys.SendWait("^c");
+                    System.Threading.Thread.Sleep(120);
+                    string text = Clipboard.GetText();
+                    if (string.IsNullOrWhiteSpace(text)) return;
+                    text = new string(text.Where(ch => ch >= 32).ToArray());
+                    OnHotkeyTriggered(text);
+                }
+            }
+            base.WndProc(ref m);
+        }
+
+        private void OnHotkeyTriggered(string key)
+        {
+            var item = library.Find(key);
+            if (item == null) return;
+
+            if (item.Type == "text" || item.Type == "file")
+            {
+                string text = item.Value;
+                // Gõ text vào cửa sổ hiện tại
+                SendKeys.SendWait("^{BACKSPACE}");
+                //SendKeys.SendWait(text);
+                Clipboard.SetText(text);
+                SendKeys.SendWait("^v");
+            }
+            else if (item.Type == "image")
+            {
+                try
+                {
+                    var img = Image.FromFile(item.Value);
+                    Clipboard.SetImage(img);
+                }
+                catch (Exception ex)
+                {
+                }
+            }
+        }
+        ReplacementLibrary library;
         public frmMain()
         {
             InitializeComponent();
+            string dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
+            library = new ReplacementLibrary(dataPath);
         }
-
+        private void RegisterGlobalHotkeys()
+        {
+            RegisterHotKey(this.Handle, HOTKEY_ID_CTRL_H, MOD_CONTROL, (uint)Keys.H);
+            RegisterHotKey(this.Handle, HOTKEY_ID_CTRL_K, MOD_CONTROL, (uint)Keys.K);
+            RegisterHotKey(this.Handle, HOTKEY_ID_CTRL_O, MOD_CONTROL, (uint)Keys.O);
+        }
         private void frmMain_Load(object sender, EventArgs e)
         {
-
+            InitializeComponent();
+            RegisterGlobalHotkeys();
         }
 
         private string OCR(Bitmap b)
@@ -118,7 +224,7 @@ namespace HRead
 
         private void btnMakeQr_Click(object sender, EventArgs e)
         {
-            if(txtRes.Text == null) return;
+            if(txtRes.Text == "") return;
             // Tạo đối tượng BarcodeWriter
             BarcodeWriter writer = new BarcodeWriter();
 
@@ -236,7 +342,7 @@ namespace HRead
 
         private void btnMakeBar_Click(object sender, EventArgs e)
         {
-            if (txtRes.Text == null) return;
+            if (txtRes.Text == "") return;
             // Tạo đối tượng BarcodeWriter
             BarcodeWriter writer = new BarcodeWriter();
 
@@ -253,6 +359,137 @@ namespace HRead
 
             // Hiển thị ảnh mã QR trên PictureBox
             picImage.Image = qrCodeImage;
+        }
+
+        public static string chuyenChuoiSQL(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return string.Empty;
+
+            // Tách từng dòng
+            var lines = input.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Xử lý từng dòng
+            var resultLines = lines.Select(line =>
+            {
+                // Tách theo tab, bỏ giá trị trống
+                var values = line.Split('\t')
+                                 .Select(v => v.Trim())
+                                 .Where(v => !string.IsNullOrEmpty(v))
+                                 .Select(v => $"'{v.Replace("'", "''")}'"); // thêm dấu nháy đơn
+
+                // Ghép lại: ('1','2','3')
+                return $"({string.Join(",", values)})";
+            });
+
+            // Ghép các dòng lại, ngăn cách bằng dấu phẩy + xuống dòng
+            return string.Join("," + Environment.NewLine, resultLines);
+        }
+
+        private void repTXT_Click(object sender, EventArgs e)
+        {
+            if (txtRes.Text == null) return;
+
+            string input = txtRes.Text;
+            if (string.IsNullOrWhiteSpace(input))
+                return;
+
+            // Tách từng dòng
+            var lines = input.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Xử lý từng dòng
+            var resultLines = lines.Select(line =>
+            {
+                // Tách theo tab, bỏ giá trị trống
+                var values = line.Split('\t')
+                                 .Select(v => v.Trim())
+                                 .Where(v => !string.IsNullOrEmpty(v))
+                                 .Select(v => $"'{v.Replace("'", "''")}'"); // thêm dấu nháy đơn
+
+                // Ghép lại: ('1','2','3')
+                return $"({string.Join(",", values)})";
+            });
+
+            // Ghép các dòng lại, ngăn cách bằng dấu phẩy + xuống dòng
+            string res = string.Join("," + Environment.NewLine, resultLines);
+
+            txtRes.Text = res;
+        }
+
+        private void txtRes_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.R)
+            {
+                txtRes.Text = chuyenChuoiSQL(txtRes.Text);
+            }
+            if (e.Control && e.KeyCode == Keys.B)
+            {
+                txtRes.Text = EncodeBase64(txtRes.Text);
+            }
+            if (e.Control && e.KeyCode == Keys.N)
+            {
+                txtRes.Text = DecodeBase64(txtRes.Text);
+            }
+            
+        }
+
+        public string EncodeBase64(string plainText)
+        {
+            if (string.IsNullOrEmpty(plainText))
+                return string.Empty;
+
+            var bytes = Encoding.UTF8.GetBytes(plainText);
+            return Convert.ToBase64String(bytes);
+        }
+        public string DecodeBase64(string base64Text)
+        {
+            if (string.IsNullOrEmpty(base64Text))
+                return string.Empty;
+
+            try
+            {
+                var bytes = Convert.FromBase64String(base64Text);
+                return Encoding.UTF8.GetString(bytes);
+            }
+            catch
+            {
+                // Trường hợp chuỗi không hợp lệ
+                return "[Invalid Base64]";
+            }
+        }
+
+        private void hd_Click(object sender, EventArgs e)
+        {
+            string ch = library.ExportAsText();
+            string hd = $@"
+Ctrl + R: chuyển thành dạng chuỗi nhiều dòng ('var1','var2')
+Ctrl + B: mã hóa Base64
+Ctrl + N: giải mã Base64
+Ctrl + H: 
+${ch}
+";
+            MessageBox.Show(hd);
+        }
+
+        private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            UnregisterAllHotkeys();
+        }
+
+        private void UnregisterAllHotkeys()
+        {
+            try
+            {
+                if (this.IsHandleCreated)
+                {
+                    UnregisterHotKey(this.Handle, HOTKEY_ID_CTRL_H);
+                    UnregisterHotKey(this.Handle, HOTKEY_ID_CTRL_K);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi huỷ hotkey: " + ex.Message);
+            }
         }
     }
 }

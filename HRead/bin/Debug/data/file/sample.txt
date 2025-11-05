@@ -1,0 +1,1 @@
+Đây là nội dung mẫu trong file sample.txt để thay thế khi gõ key 'sample'.

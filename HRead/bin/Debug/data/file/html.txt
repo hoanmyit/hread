@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>demo</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/flickity@2/dist/flickity.min.css">
+<style>
+body{
+font-family: 'Open Sans', sans-serif;
+}
+
+@media screen and (max-width: 600px) {
+
+}
+</style>
+</head>
+<body>
+
+<!--#app-->
+<div id="app">
+	<div class="header">
+	
+		<h1>{{demo}}</h1>
+		
+		<ul>
+			<li v-for="item in arr">
+				<a :href="'page.php?id='+item.id" :title="item.title">{{item.name}}</a>
+			</li>
+		</ul> 
+		
+		<button type="button" class="btn btn-primary" v-on:click="testClick">Primary</button>
+
+	</div><!--/header-->
+
+	<div class="main">
+		
+	</div><!--/main-->
+
+	<div class="footer">
+		
+	</div><!--/#footer-->
+</div> <!--/#app-->
+
+<!--HCRIPT-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<script src="https://unpkg.com/flickity@2/dist/flickity.pkgd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+<script>
+var app = new Vue({
+  el: '#app',
+  data: datanow,
+  	methods: {
+		testClick: function (){
+			this.demo += " OTC "
+			alert(this.demo)
+		}
+	}
+})
+</script>
+<!--/HCRIPT--> 
+</body>
+</html> 

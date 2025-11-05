@@ -35,6 +35,7 @@
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.panel1 = new System.Windows.Forms.Panel();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.button1 = new System.Windows.Forms.Button();
             this.btnOpen = new System.Windows.Forms.Button();
             this.txtPath = new System.Windows.Forms.TextBox();
             this.btnQr = new System.Windows.Forms.Button();
@@ -52,7 +53,7 @@
             // btnWc
             // 
             this.btnWc.Location = new System.Drawing.Point(16, 435);
-            this.btnWc.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnWc.Margin = new System.Windows.Forms.Padding(4);
             this.btnWc.Name = "btnWc";
             this.btnWc.Size = new System.Drawing.Size(136, 28);
             this.btnWc.TabIndex = 0;
@@ -62,9 +63,10 @@
             // 
             // picImage
             // 
+            this.picImage.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.picImage.Dock = System.Windows.Forms.DockStyle.Fill;
             this.picImage.Location = new System.Drawing.Point(0, 0);
-            this.picImage.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.picImage.Margin = new System.Windows.Forms.Padding(4);
             this.picImage.Name = "picImage";
             this.picImage.Size = new System.Drawing.Size(483, 383);
             this.picImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -73,21 +75,25 @@
             // 
             // txtRes
             // 
+            this.txtRes.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.txtRes.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtRes.Location = new System.Drawing.Point(8, 23);
-            this.txtRes.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtRes.Margin = new System.Windows.Forms.Padding(4);
             this.txtRes.Multiline = true;
             this.txtRes.Name = "txtRes";
-            this.txtRes.Size = new System.Drawing.Size(514, 374);
+            this.txtRes.Size = new System.Drawing.Size(581, 374);
             this.txtRes.TabIndex = 3;
+            this.txtRes.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtRes_KeyDown);
             // 
             // groupBox1
             // 
             this.groupBox1.Controls.Add(this.panel1);
             this.groupBox1.Location = new System.Drawing.Point(16, 21);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(4);
             this.groupBox1.Size = new System.Drawing.Size(491, 406);
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
@@ -100,27 +106,40 @@
             this.panel1.Controls.Add(this.picImage);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(4, 19);
-            this.panel1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.panel1.Margin = new System.Windows.Forms.Padding(4);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(483, 383);
             this.panel1.TabIndex = 0;
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.button1);
             this.groupBox2.Controls.Add(this.txtRes);
+            this.groupBox2.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.groupBox2.Location = new System.Drawing.Point(529, 21);
-            this.groupBox2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox2.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.groupBox2.Size = new System.Drawing.Size(530, 406);
+            this.groupBox2.Padding = new System.Windows.Forms.Padding(4);
+            this.groupBox2.Size = new System.Drawing.Size(600, 406);
             this.groupBox2.TabIndex = 4;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Text";
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(550, 0);
+            this.button1.Margin = new System.Windows.Forms.Padding(4);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(50, 25);
+            this.button1.TabIndex = 0;
+            this.button1.Text = "HD";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.hd_Click);
+            // 
             // btnOpen
             // 
             this.btnOpen.Location = new System.Drawing.Point(400, 435);
-            this.btnOpen.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnOpen.Margin = new System.Windows.Forms.Padding(4);
             this.btnOpen.Name = "btnOpen";
             this.btnOpen.Size = new System.Drawing.Size(100, 28);
             this.btnOpen.TabIndex = 0;
@@ -131,7 +150,7 @@
             // txtPath
             // 
             this.txtPath.Location = new System.Drawing.Point(159, 438);
-            this.txtPath.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.txtPath.Margin = new System.Windows.Forms.Padding(4);
             this.txtPath.Name = "txtPath";
             this.txtPath.Size = new System.Drawing.Size(241, 22);
             this.txtPath.TabIndex = 5;
@@ -139,7 +158,7 @@
             // btnQr
             // 
             this.btnQr.Location = new System.Drawing.Point(537, 435);
-            this.btnQr.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnQr.Margin = new System.Windows.Forms.Padding(4);
             this.btnQr.Name = "btnQr";
             this.btnQr.Size = new System.Drawing.Size(115, 28);
             this.btnQr.TabIndex = 0;
@@ -150,7 +169,7 @@
             // btnText
             // 
             this.btnText.Location = new System.Drawing.Point(660, 435);
-            this.btnText.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnText.Margin = new System.Windows.Forms.Padding(4);
             this.btnText.Name = "btnText";
             this.btnText.Size = new System.Drawing.Size(100, 28);
             this.btnText.TabIndex = 0;
@@ -160,10 +179,10 @@
             // 
             // btnMakeQr
             // 
-            this.btnMakeQr.Location = new System.Drawing.Point(893, 435);
-            this.btnMakeQr.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnMakeQr.Location = new System.Drawing.Point(1001, 435);
+            this.btnMakeQr.Margin = new System.Windows.Forms.Padding(4);
             this.btnMakeQr.Name = "btnMakeQr";
-            this.btnMakeQr.Size = new System.Drawing.Size(100, 28);
+            this.btnMakeQr.Size = new System.Drawing.Size(117, 28);
             this.btnMakeQr.TabIndex = 0;
             this.btnMakeQr.Text = "Make QR";
             this.btnMakeQr.UseVisualStyleBackColor = true;
@@ -172,7 +191,7 @@
             // btnMakeBar
             // 
             this.btnMakeBar.Location = new System.Drawing.Point(768, 435);
-            this.btnMakeBar.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnMakeBar.Margin = new System.Windows.Forms.Padding(4);
             this.btnMakeBar.Name = "btnMakeBar";
             this.btnMakeBar.Size = new System.Drawing.Size(117, 28);
             this.btnMakeBar.TabIndex = 0;
@@ -182,10 +201,10 @@
             // 
             // btnIco
             // 
-            this.btnIco.Location = new System.Drawing.Point(997, 435);
+            this.btnIco.Location = new System.Drawing.Point(893, 435);
             this.btnIco.Margin = new System.Windows.Forms.Padding(4);
             this.btnIco.Name = "btnIco";
-            this.btnIco.Size = new System.Drawing.Size(57, 28);
+            this.btnIco.Size = new System.Drawing.Size(100, 28);
             this.btnIco.TabIndex = 0;
             this.btnIco.Text = "ICO";
             this.btnIco.UseVisualStyleBackColor = true;
@@ -194,20 +213,20 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(156, 477);
+            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label1.Location = new System.Drawing.Point(187, 476);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(791, 17);
             this.label1.TabIndex = 6;
             this.label1.Text = "© 2023 LeHoan. Developed this software for non-commercial purposes to benefit the" +
     " community. Bonus MoMo: 0911060601";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1079, 510);
+            this.ClientSize = new System.Drawing.Size(1138, 505);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtPath);
             this.Controls.Add(this.groupBox2);
@@ -219,12 +238,15 @@
             this.Controls.Add(this.btnQr);
             this.Controls.Add(this.btnOpen);
             this.Controls.Add(this.btnWc);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Margin = new System.Windows.Forms.Padding(4);
+            this.MaximizeBox = false;
             this.Name = "frmMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "HRead © LeHoan";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMain_FormClosing);
             this.Load += new System.EventHandler(this.frmMain_Load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.frmMain_KeyDown);
             ((System.ComponentModel.ISupportInitialize)(this.picImage)).EndInit();
@@ -255,6 +277,7 @@
         private System.Windows.Forms.Button btnMakeBar;
         private System.Windows.Forms.Button btnIco;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Button button1;
     }
 }
 
