@@ -11,6 +11,8 @@ namespace HRead
 
         private string baseDir;
 
+        private string pard = "@";
+
         public ReplacementLibrary(string baseDirectory)
         {
             baseDir = baseDirectory;
@@ -33,7 +35,7 @@ namespace HRead
 
                     if (parts.Length == 2)
                     {
-                        string key = "@" + parts[0].Trim();
+                        string key = pard + parts[0].Trim();
                         string value = parts[1].Trim();
                         AddItem(key, "text", value);
                     }
@@ -45,7 +47,7 @@ namespace HRead
             {
                 foreach (var f in Directory.GetFiles(fileDir))
                 {
-                    string key = "@" + Path.GetFileNameWithoutExtension(f);
+                    string key = pard + Path.GetFileNameWithoutExtension(f);
                     string value = File.ReadAllText(f);
                     AddItem(key, "file", value);
                 }
@@ -56,7 +58,7 @@ namespace HRead
             {
                 foreach (var f in Directory.GetFiles(imgDir))
                 {
-                    string key = "@" + Path.GetFileNameWithoutExtension(f);
+                    string key = pard + Path.GetFileNameWithoutExtension(f);
                     AddItem(key, "image", f); // chỉ lưu path, khi cần thì load ảnh
                 }
             }

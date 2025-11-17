@@ -1,307 +1,295 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Tesseract;
-using ZXing;
 using AForge.Video;
 using AForge.Video.DirectShow;
-using System.IO;
-using System.Runtime.InteropServices;
 
 namespace HRead
 {
     public partial class frmMain : Form
     {
-        [DllImport("user32.dll")]
-        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
-
-        [DllImport("user32.dll")]
-        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
-
         private const int HOTKEY_ID_CTRL_H = 1;
         private const int HOTKEY_ID_CTRL_K = 2;
         private const int HOTKEY_ID_CTRL_O = 3;
-        // Modifier keys
-        private const uint MOD_CONTROL = 0x0002;
-        private const uint MOD_ALT = 0x0001;
-        private const uint MOD_SHIFT = 0x0004;
-        private const uint MOD_WIN = 0x0008;
 
-        private const uint KEYEVENTF_KEYUP = 0x0002;
-        private const byte VK_CONTROL = 0x11;
-        private const byte VK_C = 0x43;
+        private HotkeyManager _hotkeyManager;
+        private ImageProcessor _imageProcessor;
+        private ReplacementLibrary _library;
 
-        [DllImport("user32.dll")]
-        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+        private FilterInfoCollection _videoDevices;
+        private VideoCaptureDevice _videoSource;
+        private bool _isCameraActive = false;
 
-        protected override void WndProc(ref Message m)
-        {
-            const int WM_HOTKEY = 0x0312;
-
-            if (m.Msg == WM_HOTKEY)
-            {
-                int id = m.WParam.ToInt32();
-                if (id == HOTKEY_ID_CTRL_O)
-                {
-                    keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
-                    keybd_event(VK_C, 0, 0, UIntPtr.Zero);
-                    keybd_event(VK_C, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                    keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-
-                    Task.Delay(200); // chờ 200ms cho clipboard cập nhật
-
-                    if (Clipboard.ContainsImage())
-                    {
-                        // Lấy hình ảnh từ Clipboard
-                        Image image = Clipboard.GetImage();
-
-                        // Gán hình ảnh vào PictureBox
-                        picImage.Image = image;
-
-                        // Thay đổi kích thước PictureBox để hiển thị hình ảnh đầy đủ
-                        picImage.SizeMode = PictureBoxSizeMode.AutoSize;
-
-                        string otext = OCR((Bitmap)Clipboard.GetImage());
-                        txtRes.Text = otext;
-                        Clipboard.SetText(otext);
-                        txtRes.Refresh();
-                        picImage.Refresh();
-                    }
-                }
-                if (id == HOTKEY_ID_CTRL_H)
-                {
-                    SendKeys.SendWait("^+{LEFT}");
-                    SendKeys.SendWait("^c");
-                    System.Threading.Thread.Sleep(120);
-                    string text = Clipboard.GetText();
-                    if (string.IsNullOrWhiteSpace(text)) return;
-                    text = new string(text.Where(ch => ch >= 32).ToArray());
-                    OnHotkeyTriggered(text);
-                }
-            }
-            base.WndProc(ref m);
-        }
-
-        private void OnHotkeyTriggered(string key)
-        {
-            var item = library.Find(key);
-            if (item == null) return;
-
-            if (item.Type == "text" || item.Type == "file")
-            {
-                string text = item.Value;
-                // Gõ text vào cửa sổ hiện tại
-                SendKeys.SendWait("^{BACKSPACE}");
-                //SendKeys.SendWait(text);
-                Clipboard.SetText(text);
-                SendKeys.SendWait("^v");
-            }
-            else if (item.Type == "image")
-            {
-                try
-                {
-                    var img = Image.FromFile(item.Value);
-                    Clipboard.SetImage(img);
-                }
-                catch (Exception ex)
-                {
-                }
-            }
-        }
-        ReplacementLibrary library;
         public frmMain()
         {
             InitializeComponent();
-            string dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
-            library = new ReplacementLibrary(dataPath);
+            InitializeApplication();
         }
-        private void RegisterGlobalHotkeys()
+
+        private void InitializeApplication()
         {
-            RegisterHotKey(this.Handle, HOTKEY_ID_CTRL_H, MOD_CONTROL, (uint)Keys.H);
-            RegisterHotKey(this.Handle, HOTKEY_ID_CTRL_K, MOD_CONTROL, (uint)Keys.K);
-            RegisterHotKey(this.Handle, HOTKEY_ID_CTRL_O, MOD_CONTROL, (uint)Keys.O);
+            this.KeyPreview = true;
+
+            string dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
+            _library = new ReplacementLibrary(dataPath);
+            _imageProcessor = new ImageProcessor();
+            _hotkeyManager = new HotkeyManager(this.Handle);
+
+            _hotkeyManager.HotkeyPressed += OnHotkeyPressed;
         }
+
         private void frmMain_Load(object sender, EventArgs e)
         {
-            InitializeComponent();
-            RegisterGlobalHotkeys();
+            RegisterHotkeys();
         }
 
-        private string OCR(Bitmap b)
+        private void RegisterHotkeys()
         {
-            string res = "";
+            _hotkeyManager.RegisterHotkey(HOTKEY_ID_CTRL_H, Keys.H);
+            _hotkeyManager.RegisterHotkey(HOTKEY_ID_CTRL_K, Keys.K);
+            _hotkeyManager.RegisterHotkey(HOTKEY_ID_CTRL_O, Keys.O);
+        }
 
-            using (var engine = new TesseractEngine(@"tessdata", "vie", EngineMode.Default))
+        protected override void WndProc(ref Message m)
+        {
+            _hotkeyManager?.ProcessMessage(m);
+            base.WndProc(ref m);
+        }
+
+        private async void OnHotkeyPressed(int hotkeyId)
+        {
+            switch (hotkeyId)
             {
-                var pixImage = Pix.LoadFromMemory(ImageToByte(b));
-                using (var page = engine.Process(pixImage, PageSegMode.AutoOnly))
-                    res = page.GetText();
+                case HOTKEY_ID_CTRL_O:
+                    await ProcessClipboardImageAsync();
+                    break;
+                case HOTKEY_ID_CTRL_H:
+                    ProcessTextReplacement();
+                    break;
             }
-            return res;
         }
 
-        public static byte[] ImageToByte(Image img)
+        private async Task ProcessClipboardImageAsync()
         {
-            ImageConverter converter = new ImageConverter();
-            return (byte[])converter.ConvertTo(img, typeof(byte[]));
+            try
+            {
+                _hotkeyManager.SimulateCopy();
+                await Task.Delay(200);
+
+                if (Clipboard.ContainsImage())
+                {
+                    var image = Clipboard.GetImage();
+
+                    // Tạo bitmap mới từ image để đảm bảo định dạng
+                    using (var bitmap = new Bitmap(image))
+                    {
+                        picImage.Image = (Bitmap)bitmap.Clone();
+                        picImage.SizeMode = PictureBoxSizeMode.AutoSize;
+
+                        string ocrText = _imageProcessor.PerformOCR(bitmap);
+                        txtRes.Text = ocrText;
+                        Clipboard.SetText(ocrText);
+
+                        RefreshControls();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error processing clipboard image: {ex.Message}", "Error",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
+        private void ProcessTextReplacement()
+        {
+            SendKeys.SendWait("^+{LEFT}^c");
+            System.Threading.Thread.Sleep(120);
+
+            string text = Clipboard.GetText();
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            var item = _library.Find(text);
+            if (item == null) return;
+
+            ExecuteReplacement(item);
+        }
+
+        private void ExecuteReplacement(ReplacementItem item)
+        {
+            SendKeys.SendWait("^{BACKSPACE}");
+
+            switch (item.Type)
+            {
+                case "text":
+                case "file":
+                    Clipboard.SetText(item.Value);
+                    SendKeys.SendWait("^v");
+                    break;
+                case "image":
+                    TrySetImageToClipboard(item.Value);
+                    SendKeys.SendWait("^v");
+                    break;
+            }
+        }
+
+        private void TrySetImageToClipboard(string filePath)
+        {
+            try
+            {
+                using (var img = Image.FromFile(filePath))
+                {
+                    Clipboard.SetImage(img);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error if needed
+            }
+        }
+
+        private void RefreshControls()
+        {
+            txtRes.Refresh();
+            picImage.Refresh();
+        }
+
+        // Event Handlers
         private void btnText_Click(object sender, EventArgs e)
         {
-            txtRes.Text = OCR((Bitmap)picImage.Image);
+            if (picImage.Image is Bitmap bitmap)
+            {
+                txtRes.Text = _imageProcessor.PerformOCR(bitmap);
+            }
         }
 
         private void frmMain_KeyDown(object sender, KeyEventArgs e)
         {
-            // Kiểm tra Ctrl và V đã được nhấn
-            if (e.Control && e.KeyCode == Keys.V)
+            if (e.Control && e.KeyCode == Keys.V && Clipboard.ContainsImage())
             {
-                // Kiểm tra xem dữ liệu trong Clipboard có là hình ảnh hay không
-                if (Clipboard.ContainsImage())
-                {
-                    // Lấy hình ảnh từ Clipboard
-                    Image image = Clipboard.GetImage();
+                SetImageFromClipboard();
+            }
+            else if (e.Control)
+            {
+                HandleTextProcessingShortcuts(e);
+            }
+        }
 
-                    // Gán hình ảnh vào PictureBox
-                    picImage.Image = image;
+        private void SetImageFromClipboard()
+        {
+            var image = Clipboard.GetImage();
+            picImage.Image = image;
+            picImage.SizeMode = PictureBoxSizeMode.AutoSize;
+        }
 
-                    // Thay đổi kích thước PictureBox để hiển thị hình ảnh đầy đủ
-                    picImage.SizeMode = PictureBoxSizeMode.AutoSize;
-                }
+        private void HandleTextProcessingShortcuts(KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.R)
+            {
+                txtRes.Text = StringProcessor.ConvertToSqlString(txtRes.Text);
+            }
+            else if (e.KeyCode == Keys.B)
+            {
+                txtRes.Text = StringProcessor.EncodeBase64(txtRes.Text);
+            }
+            else if (e.KeyCode == Keys.N)
+            {
+                txtRes.Text = StringProcessor.DecodeBase64(txtRes.Text);
             }
         }
 
         private void btnOpen_Click(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-
-            // Chỉ cho phép chọn file ảnh
-            openFileDialog.Filter = "File ảnh|*.jpg;*.png;*.gif;*.bmp;*.jpeg";
-            openFileDialog.Title = "Chọn file ảnh";
-
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            using (var openFileDialog = new OpenFileDialog())
             {
-                // Lấy đường dẫn file ảnh được chọn
-                string filePath = openFileDialog.FileName;
+                openFileDialog.Filter = "Image Files|*.jpg;*.png;*.gif;*.bmp;*.jpeg";
+                openFileDialog.Title = "Select Image File";
 
-                // Gán đường dẫn vào TextBox
-                txtPath.Text = filePath;
-
-                // Gán hình ảnh từ file vào PictureBox
-                picImage.Image = Image.FromFile(filePath);
-
-                // Thay đổi kích thước PictureBox để hiển thị hình ảnh đầy đủ
-                picImage.SizeMode = PictureBoxSizeMode.AutoSize;
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    LoadImageFromFile(openFileDialog.FileName);
+                }
             }
+        }
+
+        private void LoadImageFromFile(string filePath)
+        {
+            txtPath.Text = filePath;
+            picImage.Image = Image.FromFile(filePath);
+            picImage.SizeMode = PictureBoxSizeMode.AutoSize;
         }
 
         private void btnQr_Click(object sender, EventArgs e)
         {
-            // Kiểm tra có hình ảnh trong PictureBox hay không
-            if (picImage.Image == null) return;
-
-            // Tạo đối tượng BarcodeReader
-            BarcodeReader reader = new BarcodeReader();
-
-            // Đọc ảnh từ PictureBox
-            Bitmap image = new Bitmap(picImage.Image);
-
-            // Đọc mã QR từ ảnh
-            Result result = reader.Decode(image);
-
-            // Kiểm tra xem mã QR có thành công hay không
-            if (result != null)
+            if (picImage.Image is Bitmap bitmap)
             {
-                txtRes.Text = result.Text;
+                txtRes.Text = _imageProcessor.ReadQRCode(bitmap);
             }
         }
 
         private void btnMakeQr_Click(object sender, EventArgs e)
         {
-            if(txtRes.Text == "") return;
-            // Tạo đối tượng BarcodeWriter
-            BarcodeWriter writer = new BarcodeWriter();
+            if (string.IsNullOrEmpty(txtRes.Text)) return;
 
-            // Cấu hình BarcodeWriter để tạo mã QR
-            writer.Format = BarcodeFormat.QR_CODE;
-            writer.Options = new ZXing.Common.EncodingOptions
-            {
-                Width = picImage.Width, // Chiều rộng của mã QR
-                Height = picImage.Height, // Chiều cao của mã QR
-            };
-
-            // Chuyển đổi văn bản thành ảnh mã QR
-            Bitmap qrCodeImage = writer.Write(txtRes.Text);
-
-            // Hiển thị ảnh mã QR trên PictureBox
-            picImage.Image = qrCodeImage;
+            var qrCode = _imageProcessor.GenerateQRCode(txtRes.Text, picImage.Size);
+            picImage.Image = qrCode;
         }
 
-        bool status = false;
-        private FilterInfoCollection videoDevices;
-        private VideoCaptureDevice videoSource;
+        private void btnMakeBar_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(txtRes.Text)) return;
+
+            var barcode = _imageProcessor.GenerateBarcode(txtRes.Text, picImage.Size);
+            picImage.Image = barcode;
+        }
+
         private void btnWc_Click(object sender, EventArgs e)
         {
-            if (!status)
+            ToggleWebcam();
+        }
+
+        private void ToggleWebcam()
+        {
+            if (_isCameraActive)
             {
-                StartWc();
-                btnWc.Text = "Webcam OFF";
+                StopWebcam();
+                btnWc.Text = "Webcam ON";
             }
             else
             {
-                StopWc();
-                btnWc.Text = "Webcam ON";
+                StartWebcam();
+                btnWc.Text = "Webcam OFF";
             }
-
-            status = !status;
+            _isCameraActive = !_isCameraActive;
         }
 
-        private void StartWc()
+        private void StartWebcam()
         {
+            _videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
 
-            // Tìm kiếm và lấy danh sách thiết bị webcam
-            videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-
-            // Kiểm tra xem có thiết bị webcam nào được tìm thấy hay không
-            if (videoDevices.Count == 0)
+            if (_videoDevices.Count == 0)
             {
-                MessageBox.Show("Không tìm thấy thiết bị webcam.");
+                MessageBox.Show("No webcam devices found.");
                 return;
             }
 
-            // Khởi tạo đối tượng VideoCaptureDevice với thiết bị webcam đầu tiên
-            videoSource = new VideoCaptureDevice(videoDevices[0].MonikerString);
-
-            // Thiết lập sự kiện NewFrame để nhận hình ảnh mới từ webcam
-            videoSource.NewFrame += VideoSource_NewFrame;
-
-            // Bắt đầu streaming hình ảnh từ webcam
-            videoSource.Start();
+            _videoSource = new VideoCaptureDevice(_videoDevices[0].MonikerString);
+            _videoSource.NewFrame += VideoSource_NewFrame;
+            _videoSource.Start();
         }
 
-        private void StopWc()
+        private void StopWebcam()
         {
-            // Dừng streaming hình ảnh từ webcam khi đóng form
-            if (videoSource != null && videoSource.IsRunning)
-            {
-                videoSource.SignalToStop();
-                videoSource.WaitForStop();
-                videoSource = null;
-            }
+            _videoSource?.SignalToStop();
+            _videoSource?.WaitForStop();
+            _videoSource = null;
         }
 
         private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
         {
-            // Lấy hình ảnh mới từ webcam
-            var frame = (System.Drawing.Bitmap)eventArgs.Frame.Clone();
-
-            // Hiển thị hình ảnh lên control PictureBox từ luồng chính
+            var frame = (Bitmap)eventArgs.Frame.Clone();
             picImage.Invoke((MethodInvoker)delegate
             {
                 picImage.Image = frame;
@@ -310,186 +298,72 @@ namespace HRead
 
         private void btnIco_Click(object sender, EventArgs e)
         {
-            // Tạo đối tượng OpenFileDialog để người dùng chọn vị trí lưu
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "Icon File|*.ico";
-            saveFileDialog.Title = "Chọn vị trí lưu tệp ICO";
-            saveFileDialog.ShowDialog();
-
-            string icoFilePath = saveFileDialog.FileName; // Lấy đường dẫn đã được chọn để lưu tệp ICO
-
-            if (!string.IsNullOrEmpty(icoFilePath))
+            using (var saveFileDialog = new SaveFileDialog())
             {
-                // Lấy hình ảnh từ PictureBox
-                Bitmap bitmap = new Bitmap(picImage.Image, new Size(128, 128));
+                saveFileDialog.Filter = "Icon File|*.ico";
+                saveFileDialog.Title = "Save Icon File";
 
-                // Tạo đối tượng Icon từ đối tượng Bitmap
-                using (Icon icon = Icon.FromHandle(bitmap.GetHicon()))
+                if (saveFileDialog.ShowDialog() == DialogResult.OK && !string.IsNullOrEmpty(saveFileDialog.FileName))
                 {
-                    // Tạo một luồng để ghi tệp ICO
-                    using (FileStream stream = new FileStream(icoFilePath, FileMode.OpenOrCreate))
-                    {
-                        // Lưu đối tượng Icon thành tệp ICO
-                        icon.Save(stream);
-                    }
+                    SaveAsIcon(saveFileDialog.FileName);
                 }
             }
-            else
-            {
-                MessageBox.Show("Đường dẫn tệp không hợp lệ.");
-            }
         }
 
-        private void btnMakeBar_Click(object sender, EventArgs e)
+        private void SaveAsIcon(string filePath)
         {
-            if (txtRes.Text == "") return;
-            // Tạo đối tượng BarcodeWriter
-            BarcodeWriter writer = new BarcodeWriter();
-
-            // Cấu hình BarcodeWriter để tạo mã QR
-            writer.Format = BarcodeFormat.CODE_128;
-            writer.Options = new ZXing.Common.EncodingOptions
+            if (picImage.Image == null)
             {
-                Width = picImage.Width, // Chiều rộng của mã QR
-                Height = picImage.Height, // Chiều cao của mã QR
-            };
-
-            // Chuyển đổi văn bản thành ảnh mã QR
-            Bitmap qrCodeImage = writer.Write(txtRes.Text);
-
-            // Hiển thị ảnh mã QR trên PictureBox
-            picImage.Image = qrCodeImage;
-        }
-
-        public static string chuyenChuoiSQL(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input))
-                return string.Empty;
-
-            // Tách từng dòng
-            var lines = input.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-            // Xử lý từng dòng
-            var resultLines = lines.Select(line =>
-            {
-                // Tách theo tab, bỏ giá trị trống
-                var values = line.Split('\t')
-                                 .Select(v => v.Trim())
-                                 .Where(v => !string.IsNullOrEmpty(v))
-                                 .Select(v => $"'{v.Replace("'", "''")}'"); // thêm dấu nháy đơn
-
-                // Ghép lại: ('1','2','3')
-                return $"({string.Join(",", values)})";
-            });
-
-            // Ghép các dòng lại, ngăn cách bằng dấu phẩy + xuống dòng
-            return string.Join("," + Environment.NewLine, resultLines);
-        }
-
-        private void repTXT_Click(object sender, EventArgs e)
-        {
-            if (txtRes.Text == null) return;
-
-            string input = txtRes.Text;
-            if (string.IsNullOrWhiteSpace(input))
+                MessageBox.Show("No image to save as icon.");
                 return;
-
-            // Tách từng dòng
-            var lines = input.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-            // Xử lý từng dòng
-            var resultLines = lines.Select(line =>
-            {
-                // Tách theo tab, bỏ giá trị trống
-                var values = line.Split('\t')
-                                 .Select(v => v.Trim())
-                                 .Where(v => !string.IsNullOrEmpty(v))
-                                 .Select(v => $"'{v.Replace("'", "''")}'"); // thêm dấu nháy đơn
-
-                // Ghép lại: ('1','2','3')
-                return $"({string.Join(",", values)})";
-            });
-
-            // Ghép các dòng lại, ngăn cách bằng dấu phẩy + xuống dòng
-            string res = string.Join("," + Environment.NewLine, resultLines);
-
-            txtRes.Text = res;
-        }
-
-        private void txtRes_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Control && e.KeyCode == Keys.R)
-            {
-                txtRes.Text = chuyenChuoiSQL(txtRes.Text);
             }
-            if (e.Control && e.KeyCode == Keys.B)
-            {
-                txtRes.Text = EncodeBase64(txtRes.Text);
-            }
-            if (e.Control && e.KeyCode == Keys.N)
-            {
-                txtRes.Text = DecodeBase64(txtRes.Text);
-            }
-            
-        }
-
-        public string EncodeBase64(string plainText)
-        {
-            if (string.IsNullOrEmpty(plainText))
-                return string.Empty;
-
-            var bytes = Encoding.UTF8.GetBytes(plainText);
-            return Convert.ToBase64String(bytes);
-        }
-        public string DecodeBase64(string base64Text)
-        {
-            if (string.IsNullOrEmpty(base64Text))
-                return string.Empty;
 
             try
             {
-                var bytes = Convert.FromBase64String(base64Text);
-                return Encoding.UTF8.GetString(bytes);
+                using (var bitmap = new Bitmap(picImage.Image, new Size(128, 128)))
+                using (var icon = Icon.FromHandle(bitmap.GetHicon()))
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    icon.Save(stream);
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // Trường hợp chuỗi không hợp lệ
-                return "[Invalid Base64]";
+                MessageBox.Show($"Error saving icon: {ex.Message}");
             }
         }
 
         private void hd_Click(object sender, EventArgs e)
         {
-            string ch = library.ExportAsText();
-            string hd = $@"
-Ctrl + R: chuyển thành dạng chuỗi nhiều dòng ('var1','var2')
-Ctrl + B: mã hóa Base64
-Ctrl + N: giải mã Base64
-Ctrl + H: 
-${ch}
+            ShowHelp();
+        }
+
+        private void ShowHelp()
+        {
+            string libraryText = _library.ExportAsText();
+            string helpText = $@"
+Keyboard Shortcuts:
+Ctrl + R: Convert to multi-line SQL string ('var1','var2')
+Ctrl + B: Encode to Base64
+Ctrl + N: Decode from Base64
+Ctrl + H: Text replacement
+
+Library Contents:
+{libraryText}
 ";
-            MessageBox.Show(hd);
+            MessageBox.Show(helpText, "Application Help");
         }
 
         private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            UnregisterAllHotkeys();
+            CleanupResources();
         }
 
-        private void UnregisterAllHotkeys()
+        private void CleanupResources()
         {
-            try
-            {
-                if (this.IsHandleCreated)
-                {
-                    UnregisterHotKey(this.Handle, HOTKEY_ID_CTRL_H);
-                    UnregisterHotKey(this.Handle, HOTKEY_ID_CTRL_K);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi huỷ hotkey: " + ex.Message);
-            }
+            StopWebcam();
+            _hotkeyManager?.Dispose();
+            _imageProcessor?.Dispose();
         }
     }
 }

@@ -30,7 +30,6 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.btnWc = new System.Windows.Forms.Button();
-            this.picImage = new System.Windows.Forms.PictureBox();
             this.txtRes = new System.Windows.Forms.TextBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.panel1 = new System.Windows.Forms.Panel();
@@ -44,10 +43,11 @@
             this.btnMakeBar = new System.Windows.Forms.Button();
             this.btnIco = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
-            ((System.ComponentModel.ISupportInitialize)(this.picImage)).BeginInit();
+            this.picImage = new System.Windows.Forms.PictureBox();
             this.groupBox1.SuspendLayout();
             this.panel1.SuspendLayout();
             this.groupBox2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picImage)).BeginInit();
             this.SuspendLayout();
             // 
             // btnWc
@@ -61,18 +61,6 @@
             this.btnWc.UseVisualStyleBackColor = true;
             this.btnWc.Click += new System.EventHandler(this.btnWc_Click);
             // 
-            // picImage
-            // 
-            this.picImage.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.picImage.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.picImage.Location = new System.Drawing.Point(0, 0);
-            this.picImage.Margin = new System.Windows.Forms.Padding(4);
-            this.picImage.Name = "picImage";
-            this.picImage.Size = new System.Drawing.Size(483, 383);
-            this.picImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
-            this.picImage.TabIndex = 1;
-            this.picImage.TabStop = false;
-            // 
             // txtRes
             // 
             this.txtRes.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -85,7 +73,6 @@
             this.txtRes.Name = "txtRes";
             this.txtRes.Size = new System.Drawing.Size(581, 374);
             this.txtRes.TabIndex = 3;
-            this.txtRes.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtRes_KeyDown);
             // 
             // groupBox1
             // 
@@ -222,6 +209,15 @@
     " community. Bonus MoMo: 0911060601";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
+            // picImage
+            // 
+            this.picImage.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.picImage.Location = new System.Drawing.Point(0, 0);
+            this.picImage.Name = "picImage";
+            this.picImage.Size = new System.Drawing.Size(483, 383);
+            this.picImage.TabIndex = 0;
+            this.picImage.TabStop = false;
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -238,24 +234,21 @@
             this.Controls.Add(this.btnQr);
             this.Controls.Add(this.btnOpen);
             this.Controls.Add(this.btnWc);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.Margin = new System.Windows.Forms.Padding(4);
-            this.MaximizeBox = false;
             this.Name = "frmMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "HRead © LeHoan";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMain_FormClosing);
             this.Load += new System.EventHandler(this.frmMain_Load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.frmMain_KeyDown);
-            ((System.ComponentModel.ISupportInitialize)(this.picImage)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picImage)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -264,7 +257,6 @@
         #endregion
 
         private System.Windows.Forms.Button btnWc;
-        private System.Windows.Forms.PictureBox picImage;
         private System.Windows.Forms.TextBox txtRes;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox groupBox2;
@@ -278,6 +270,7 @@
         private System.Windows.Forms.Button btnIco;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.PictureBox picImage;
     }
 }
 

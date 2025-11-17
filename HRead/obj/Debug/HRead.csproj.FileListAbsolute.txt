@@ -239,7 +239,6 @@ D:\Work\hread\HRead\bin\Debug\AForge.Video.DirectShow.xml
 D:\Work\hread\HRead\bin\Debug\Tesseract.xml
 D:\Work\hread\HRead\bin\Debug\zxing.xml
 D:\Work\hread\HRead\bin\Debug\zxing.presentation.xml
-D:\Work\hread\HRead\obj\Debug\HRead.csproj.AssemblyReference.cache
 D:\Work\hread\HRead\obj\Debug\HRead.exe.config
 D:\Work\hread\HRead\obj\Debug\HRead.frmMain.resources
 D:\Work\hread\HRead\obj\Debug\HRead.Properties.Resources.resources
@@ -248,3 +247,4 @@ D:\Work\hread\HRead\obj\Debug\HRead.csproj.CoreCompileInputs.cache
 D:\Work\hread\HRead\obj\Debug\HRead.csproj.CopyComplete
 D:\Work\hread\HRead\obj\Debug\HRead.exe
 D:\Work\hread\HRead\obj\Debug\HRead.pdb
+D:\Work\hread\HRead\obj\Debug\HRead.csproj.AssemblyReference.cache
